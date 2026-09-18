@@ -15,6 +15,9 @@ PIECE_SIZE = 32
 GRID_WIDTH = 10
 GRID_HEIGHT = 20
 
+game_over = False
+font = pygame.font.SysFont("Arial", 60, bold=True)
+
 clock = pygame.time.Clock()
 FPS = 60
 
@@ -106,21 +109,17 @@ def is_valid_position(piece_data, anchor_col, anchor_row, grid):
 
         # Check left and right walls
         if target_col < 0 or target_col >= GRID_WIDTH:
-            print("width")
             return False
 
         # Check floor
         if target_row >= GRID_HEIGHT:
-            print("height")
             return False
 
         # 3. Check collision with locked pieces
         if target_row >= 0 and grid[target_row][target_col] is not None:
-            print("collision")
             return False
 
     # If all true
-    print("valid")
     return True
 
 def lock_piece(piece_data, anchor_col, anchor_row, grid):
@@ -156,22 +155,42 @@ def clear_full_rows(grid):
         
     return cleared_count
 
-current_piece = PIECES[random.choice(list(PIECES.keys()))]
+#QUEUE
+queue = [random.choice(list(PIECES.values())) for _ in range(7)]
+QUEUE_X = 400
+QUEUE_Y = 50
+
+def draw_next_queue(surf, queue, sidebar_x, sidebar_y):
+    MINI_BLOCK_SIZE = 20
+    SLOT_SPACING = 80
+
+    # loop through only first 4
+    for index, piece in enumerate(queue[:4]):
+        # get top anchor position for slot
+        slot_x = sidebar_x + 20
+        slot_y = sidebar_y + (index * SLOT_SPACING) + 40
+
+        # draw each block of the preview piece
+        for col_offset, row_offset in piece['shape']:
+            pixel_x = slot_x + (col_offset * MINI_BLOCK_SIZE)
+            pixel_y = slot_y + (row_offset * MINI_BLOCK_SIZE)
+
+            # Draw block fill and dark border
+            pygame.draw.rect(surf, piece['color'], (pixel_x, pixel_y, MINI_BLOCK_SIZE, MINI_BLOCK_SIZE))
+            pygame.draw.rect(surf, (20, 20, 20), (pixel_x, pixel_y, MINI_BLOCK_SIZE, MINI_BLOCK_SIZE), 1)
+
+current_piece = queue.pop(0)
 current_col = 3
 current_row = 0
 
-game_over = False
-font = pygame.font.SysFont("Arial", 60, bold=True)
-
 running = True
 while running:
-    # 1. Event Handling
+    # Event Handling
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
         # Triggered automatically every 500ms by Pygame's timer
         elif event.type == FALL_EVENT:
-            print("timer ticked")
             # Test if moving down 1 row is valid
             if is_valid_position(current_piece, current_col, current_row + 1, board):
                 current_row += 1
@@ -181,7 +200,8 @@ while running:
                 # Check for and clear any completed lines
                 lines_cleared = clear_full_rows(board)
                 # Spawn new piece at top
-                current_piece = PIECES[random.choice(list(PIECES.keys()))]
+                current_piece = queue.pop(0)
+                queue.append(random.choice(list(PIECES.values())))
                 current_col = 3
                 current_row = 0
 
@@ -239,18 +259,19 @@ while running:
                     # If soft-dropping into a surface, lock immediately
                     lock_piece(current_piece, current_col, current_row, board)
                     lines_cleared = clear_full_rows(board)
-                    current_piece = PIECES[random.choice(list(PIECES.keys()))]
+                    current_piece = queue.pop(0)
+                    queue.append(random.choice(list(PIECES.values())))
                     current_col = 3
                     current_row = 0
 
                     if not is_valid_position(current_piece, current_col, current_row, board):
                         game_over = True
-    # 2. Game Logic Updates
 
-    # 3. Drawing / Rendering
+    # Drawing
     screen.fill((30, 30, 30))
 
     draw_board(screen, board)
+    draw_next_queue(screen, queue, QUEUE_X, QUEUE_Y)
 
     if not game_over:
         draw_active_piece(screen, current_piece, current_col, current_row)

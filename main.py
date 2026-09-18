@@ -14,9 +14,10 @@ pygame.display.set_caption("Tetris")
 PIECE_SIZE = 32
 GRID_WIDTH = 10
 GRID_HEIGHT = 20
+SCORE = 0
 
 game_over = False
-font = pygame.font.SysFont("Arial", 60, bold=True)
+font = pygame.font.SysFont("Arial", 50, bold=True)
 
 clock = pygame.time.Clock()
 FPS = 60
@@ -147,6 +148,16 @@ def clear_full_rows(grid):
     # How many rows were cleared
     cleared_count = GRID_HEIGHT - len(remaining_rows)
     
+    global SCORE
+    if cleared_count == 1:
+        SCORE += 100
+    elif cleared_count == 2:
+        SCORE += 300
+    elif cleared_count == 3:
+        SCORE += 500
+    elif cleared_count == 4:
+        SCORE += 800
+
     # Insert fresh empty rows at the top
     if cleared_count > 0:
         empty_rows = [[None for _ in range(GRID_WIDTH)] for _ in range(cleared_count)]
@@ -157,8 +168,8 @@ def clear_full_rows(grid):
 
 #QUEUE
 queue = [random.choice(list(PIECES.values())) for _ in range(7)]
-QUEUE_X = 400
-QUEUE_Y = 50
+QUEUE_X = 412
+QUEUE_Y = 100
 
 def draw_next_queue(surf, queue, sidebar_x, sidebar_y):
     MINI_BLOCK_SIZE = 20
@@ -258,7 +269,7 @@ while running:
                 else:
                     # If soft-dropping into a surface, lock immediately
                     lock_piece(current_piece, current_col, current_row, board)
-                    lines_cleared = clear_full_rows(board)
+                    lines_cleared = clear_full_rows(board, SCORE)
                     current_piece = queue.pop(0)
                     queue.append(random.choice(list(PIECES.values())))
                     current_col = 3
@@ -272,6 +283,10 @@ while running:
 
     draw_board(screen, board)
     draw_next_queue(screen, queue, QUEUE_X, QUEUE_Y)
+    
+    score_text = font.render(str(SCORE), True, (255, 255, 255))
+    score_rect = score_text.get_rect(center=(450, 50))
+    screen.blit(score_text, score_rect)
 
     if not game_over:
         draw_active_piece(screen, current_piece, current_col, current_row)

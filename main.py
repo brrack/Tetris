@@ -18,6 +18,7 @@ SCORE = 0
 
 game_over = False
 font = pygame.font.SysFont("Arial", 50, bold=True)
+hold_font = pygame.font.SysFont("Arial", 20, bold=True)
 
 clock = pygame.time.Clock()
 FPS = 60
@@ -50,7 +51,7 @@ PIECES = {
         'color': (0, 255, 0)    # GREEN
     },
     'Z': {
-        'shape': [(0, 0), (1, 0), (1, 1), (2, 1)],
+        'shape': [(-1, 1), (0, -1), (0, 0), (-1, 0)],
         'color': (255, 0, 0)    # RED
     }
 }
@@ -190,10 +191,37 @@ def draw_next_queue(surf, queue, sidebar_x, sidebar_y):
             pygame.draw.rect(surf, piece['color'], (pixel_x, pixel_y, MINI_BLOCK_SIZE, MINI_BLOCK_SIZE))
             pygame.draw.rect(surf, (20, 20, 20), (pixel_x, pixel_y, MINI_BLOCK_SIZE, MINI_BLOCK_SIZE), 1)
 
+# HOLD BOX
+HOLD_X = 400 
+HOLD_Y = 550
+def draw_hold_box(surf, held_piece, hold_x, hold_y):
+    MINI_BLOCK_SIZE = 20
+    BOX_WIDTH = 100
+    BOX_HEIGHT = 100
+
+    # Draw panel container border
+    pygame.draw.rect(surf, (50, 50, 50), (hold_x, hold_y, BOX_WIDTH, BOX_HEIGHT), 2)
+
+    # If a piece is held, draw its blocks inside the box
+    if held_piece is not None:
+        # Offset starting position to align piece neatly inside the panel
+        center_x = hold_x + 36
+        center_y = hold_y + 40
+
+        for col_offset, row_offset in held_piece['shape']:
+            pixel_x = center_x + (col_offset * MINI_BLOCK_SIZE)
+            pixel_y = center_y + (row_offset * MINI_BLOCK_SIZE)
+
+            # Block fill
+            pygame.draw.rect(surf, held_piece['color'], (pixel_x, pixel_y, MINI_BLOCK_SIZE, MINI_BLOCK_SIZE))
+            # Dark border outline
+            pygame.draw.rect(surf, (20, 20, 20), (pixel_x, pixel_y, MINI_BLOCK_SIZE, MINI_BLOCK_SIZE), 1)
+
 current_piece = queue.pop(0)
 current_col = 3
 current_row = 0
 
+draw_hold_box(screen, None, HOLD_X, HOLD_Y)
 running = True
 while running:
     # Event Handling
@@ -244,6 +272,8 @@ while running:
                     current_row = test_row
                     current_row += 1
                     break
+            elif event.key == pygame.K_SPACE:
+                draw_hold_box(screen, current_piece, HOLD_X, HOLD_Y)
             elif event.key == pygame.K_UP:
                 valid = True
                 while valid:

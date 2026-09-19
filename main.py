@@ -192,36 +192,42 @@ def draw_next_queue(surf, queue, sidebar_x, sidebar_y):
             pygame.draw.rect(surf, (20, 20, 20), (pixel_x, pixel_y, MINI_BLOCK_SIZE, MINI_BLOCK_SIZE), 1)
 
 # HOLD BOX
+HELD_PIECE = None
 HOLD_X = 400 
 HOLD_Y = 550
-def draw_hold_box(surf, held_piece, hold_x, hold_y):
-    MINI_BLOCK_SIZE = 20
-    BOX_WIDTH = 100
-    BOX_HEIGHT = 100
+HOLD_WIDTH = 100
+HOLD_HEIGHT = 100
 
-    # Draw panel container border
-    pygame.draw.rect(surf, (50, 50, 50), (hold_x, hold_y, BOX_WIDTH, BOX_HEIGHT), 2)
+def hold_piece(current_piece):
+    global HELD_PIECE
+    if HELD_PIECE == None:
+        HELD_PIECE = current_piece
+        print("None")
+        return None
+    else:
+        new_piece = HELD_PIECE
+        HELD_PIECE = current_piece
+        print("new piece")
+        return new_piece
+    
+def draw_held_piece(surface, piece, origin_x, origin_y, block_size=20):
+    if piece is None:
+        return
 
-    # If a piece is held, draw its blocks inside the box
-    if held_piece is not None:
-        # Offset starting position to align piece neatly inside the panel
-        center_x = hold_x + 36
-        center_y = hold_y + 40
+    for col_offset, row_offset in piece['shape']:
+        # Multiply offset by block_size and add to the origin coordinates
+        pixel_x = origin_x + (col_offset * block_size)
+        pixel_y = origin_y + (row_offset * block_size)
 
-        for col_offset, row_offset in held_piece['shape']:
-            pixel_x = center_x + (col_offset * MINI_BLOCK_SIZE)
-            pixel_y = center_y + (row_offset * MINI_BLOCK_SIZE)
-
-            # Block fill
-            pygame.draw.rect(surf, held_piece['color'], (pixel_x, pixel_y, MINI_BLOCK_SIZE, MINI_BLOCK_SIZE))
-            # Dark border outline
-            pygame.draw.rect(surf, (20, 20, 20), (pixel_x, pixel_y, MINI_BLOCK_SIZE, MINI_BLOCK_SIZE), 1)
+        # Draw filled block
+        pygame.draw.rect(surface, piece['color'], (pixel_x, pixel_y, block_size, block_size))
+        # Draw dark inner border for grid definition
+        pygame.draw.rect(surface, (20, 20, 20), (pixel_x, pixel_y, block_size, block_size), 1)        
 
 current_piece = queue.pop(0)
 current_col = 3
 current_row = 0
 
-draw_hold_box(screen, None, HOLD_X, HOLD_Y)
 running = True
 while running:
     # Event Handling
@@ -272,8 +278,18 @@ while running:
                     current_row = test_row
                     current_row += 1
                     break
+            # Hold Piece
             elif event.key == pygame.K_SPACE:
-                draw_hold_box(screen, current_piece, HOLD_X, HOLD_Y)
+                new_piece = hold_piece(current_piece)
+                if new_piece != None:
+                    current_piece = new_piece
+                else:
+                    current_piece = queue.pop(0)
+                    queue.append(random.choice(list(PIECES.values())))
+            
+                current_col = 3
+                current_row = 0
+            # Hard Drop
             elif event.key == pygame.K_UP:
                 valid = True
                 while valid:
@@ -299,7 +315,7 @@ while running:
                 else:
                     # If soft-dropping into a surface, lock immediately
                     lock_piece(current_piece, current_col, current_row, board)
-                    lines_cleared = clear_full_rows(board, SCORE)
+                    lines_cleared = clear_full_rows(board)
                     current_piece = queue.pop(0)
                     queue.append(random.choice(list(PIECES.values())))
                     current_col = 3
@@ -313,6 +329,8 @@ while running:
 
     draw_board(screen, board)
     draw_next_queue(screen, queue, QUEUE_X, QUEUE_Y)
+    pygame.draw.rect(screen, (50, 50, 50), (HOLD_X, HOLD_Y, HOLD_WIDTH, HOLD_HEIGHT), 2)
+    draw_held_piece(screen, HELD_PIECE, 430, 595)
     
     score_text = font.render(str(SCORE), True, (255, 255, 255))
     score_rect = score_text.get_rect(center=(450, 50))

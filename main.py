@@ -151,13 +151,13 @@ def clear_full_rows(grid):
     
     global SCORE
     if cleared_count == 1:
-        SCORE += 100
+        SCORE += 40
     elif cleared_count == 2:
-        SCORE += 300
+        SCORE += 100
     elif cleared_count == 3:
-        SCORE += 500
+        SCORE += 300
     elif cleared_count == 4:
-        SCORE += 800
+        SCORE += 1200
 
     # Insert fresh empty rows at the top
     if cleared_count > 0:
@@ -197,17 +197,19 @@ HOLD_X = 400
 HOLD_Y = 550
 HOLD_WIDTH = 100
 HOLD_HEIGHT = 100
+HELD = False
 
 def hold_piece(current_piece):
     global HELD_PIECE
+    global HELD
+
+    HELD = True
     if HELD_PIECE == None:
         HELD_PIECE = current_piece
-        print("None")
         return None
     else:
         new_piece = HELD_PIECE
         HELD_PIECE = current_piece
-        print("new piece")
         return new_piece
     
 def draw_held_piece(surface, piece, origin_x, origin_y, block_size=20):
@@ -223,6 +225,28 @@ def draw_held_piece(surface, piece, origin_x, origin_y, block_size=20):
         pygame.draw.rect(surface, piece['color'], (pixel_x, pixel_y, block_size, block_size))
         # Draw dark inner border for grid definition
         pygame.draw.rect(surface, (20, 20, 20), (pixel_x, pixel_y, block_size, block_size), 1)        
+
+#GHOST
+def get_ghost_row(piece, col, row, grid):
+    ghost_row = row
+    while is_valid_position(piece, col, ghost_row + 1, grid):
+        ghost_row += 1
+    return ghost_row
+
+def draw_ghost_piece(surf, piece, col, row, grid, grid_x, grid_y, block_size):
+    ghost_row = get_ghost_row(piece, col, row, grid)
+
+    for col_offset, row_offset in piece['shape']:
+        target_col = col + col_offset
+        target_row = ghost_row + row_offset
+
+        # Only draw blocks within visible board space
+        if target_row >= 0:
+            pixel_x = grid_x + (target_col * block_size)
+            pixel_y = grid_y + (target_row * block_size)
+
+            # Draw 2px outline using the piece's color
+            pygame.draw.rect(surf, piece['color'], (pixel_x, pixel_y, block_size, block_size), 2)
 
 current_piece = queue.pop(0)
 current_col = 3
@@ -249,6 +273,7 @@ while running:
                 queue.append(random.choice(list(PIECES.values())))
                 current_col = 3
                 current_row = 0
+                HELD = False
 
                 if not is_valid_position(current_piece, current_col, current_row, board):
                     game_over = True
@@ -280,15 +305,16 @@ while running:
                     break
             # Hold Piece
             elif event.key == pygame.K_SPACE:
-                new_piece = hold_piece(current_piece)
-                if new_piece != None:
-                    current_piece = new_piece
-                else:
-                    current_piece = queue.pop(0)
-                    queue.append(random.choice(list(PIECES.values())))
+                if HELD == False:
+                    new_piece = hold_piece(current_piece)
+                    if new_piece != None:
+                        current_piece = new_piece
+                    else:
+                        current_piece = queue.pop(0)
+                        queue.append(random.choice(list(PIECES.values())))
             
-                current_col = 3
-                current_row = 0
+                    current_col = 3
+                    current_row = 0
             # Hard Drop
             elif event.key == pygame.K_UP:
                 valid = True
@@ -320,6 +346,7 @@ while running:
                     queue.append(random.choice(list(PIECES.values())))
                     current_col = 3
                     current_row = 0
+                    HELD = False
 
                     if not is_valid_position(current_piece, current_col, current_row, board):
                         game_over = True
@@ -331,6 +358,7 @@ while running:
     draw_next_queue(screen, queue, QUEUE_X, QUEUE_Y)
     pygame.draw.rect(screen, (50, 50, 50), (HOLD_X, HOLD_Y, HOLD_WIDTH, HOLD_HEIGHT), 2)
     draw_held_piece(screen, HELD_PIECE, 430, 595)
+    draw_ghost_piece(screen, current_piece, current_col, current_row, board, BOARD_X, BOARD_Y, BLOCK_SIZE)
     
     score_text = font.render(str(SCORE), True, (255, 255, 255))
     score_rect = score_text.get_rect(center=(450, 50))

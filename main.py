@@ -303,6 +303,19 @@ while running:
                     current_row = test_row
                     current_row += 1
                     break
+                else: # Check if rotated piece is valid if shifted over, on the edge
+                    if is_valid_position(test_piece, test_col + 1, test_row, board):
+                        current_piece['shape'] = rotated_shape
+                        current_col = test_col + 1
+                        current_row = test_row
+                        current_row += 1
+                        break
+                    if is_valid_position(test_piece, test_col - 1, test_row, board):
+                        current_piece['shape'] = rotated_shape
+                        current_col = test_col - 1
+                        current_row = test_row
+                        current_row += 1
+                        break
             # Hold Piece
             elif event.key == pygame.K_SPACE:
                 if HELD == False:
